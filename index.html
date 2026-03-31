@@ -2,200 +2,273 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Бронирование столиков</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Бронирование Столов</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
-            --tg-theme-bg-color: #fff;
-            --tg-theme-button-color: #2481cc;
-            --tg-theme-button-text-color: #fff;
-            --tg-theme-text-color: #000;
-            --tg-theme-hint-color: #999;
+            --bg-color: #0f0f0f;
+            --card-bg: #1a1a1a;
+            --accent-color: #00ff88;
+            --text-main: #ffffff;
+            --text-hint: #888888;
+            --danger: #ff4d4d;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--tg-theme-bg-color);
-            color: var(--tg-theme-text-color);
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
             margin: 0;
-            padding: 15px;
+            padding: 20px;
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            min-height: 100vh;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        .section-title {
-            font-size: 1.2em;
-            font-weight: bold;
-            margin-bottom: 10px;
+        .header {
+            margin-bottom: 30px;
+            text-align: center;
         }
 
-        .calendar-container {
+        .header h1 {
+            font-size: 24px;
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+
+        .header p {
+            color: var(--text-hint);
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        /* Календарь */
+        .calendar-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            margin-bottom: 15px;
+            border: 1px solid #222;
+        }
+
+        .month-header {
             display: flex;
-            flex-direction: column;
-            gap: 20px;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
         }
 
         .month-name {
-            font-weight: 600;
+            font-size: 18px;
+            font-weight: 700;
             text-transform: capitalize;
-            color: var(--tg-theme-button-color);
+            color: var(--accent-color);
         }
 
         .calendar-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
-            gap: 5px;
-            text-align: center;
+            gap: 8px;
         }
 
-        .day-name {
-            font-size: 0.8em;
-            color: var(--tg-theme-hint-color);
-            padding-bottom: 5px;
+        .weekday {
+            font-size: 12px;
+            color: var(--text-hint);
+            text-align: center;
+            padding-bottom: 10px;
+            font-weight: 600;
         }
 
         .day {
-            padding: 10px 0;
-            border-radius: 8px;
+            aspect-ratio: 1/1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            font-size: 15px;
             cursor: pointer;
-            transition: background 0.2s;
-            border: 1px solid transparent;
+            transition: all 0.2s ease;
+            position: relative;
         }
 
-        .day:hover { background-color: rgba(0,0,0,0.05); }
-        .day.selected {
-            background-color: var(--tg-theme-button-color) !important;
-            color: var(--tg-theme-button-text-color);
+        .day:not(.empty):not(.disabled):hover {
+            background: #2a2a2a;
         }
+
+        .day.today {
+            color: var(--accent-color);
+            font-weight: bold;
+        }
+
+        .day.selected {
+            background: var(--accent-color) !important;
+            color: #000 !important;
+            font-weight: 800;
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.4);
+        }
+
         .day.disabled {
-            color: var(--tg-theme-hint-color);
-            opacity: 0.4;
+            color: #333;
             pointer-events: none;
         }
-        .day.today { border: 1px solid var(--tg-theme-button-color); }
 
-        .booking-footer {
-            position: sticky;
-            bottom: 0;
-            background: var(--tg-theme-bg-color);
+        /* Кнопки */
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid #333;
+            color: var(--text-hint);
+            padding: 12px;
+            border-radius: 15px;
+            font-size: 14px;
+            width: 100%;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: 0.3s;
+        }
+
+        .btn-secondary:active {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+
+        .footer {
+            margin-top: auto;
             padding: 10px 0;
         }
 
-        #main-button {
-            width: 100%;
-            padding: 15px;
-            background-color: var(--tg-theme-button-color);
-            color: var(--tg-theme-button-text-color);
+        #book-btn {
+            background: var(--accent-color);
+            color: #000;
             border: none;
-            border-radius: 10px;
-            font-weight: bold;
+            width: 100%;
+            padding: 18px;
+            border-radius: 18px;
             font-size: 16px;
+            font-weight: 700;
             cursor: pointer;
+            transition: transform 0.1s;
         }
+
+        #book-btn:active {
+            transform: scale(0.98);
+        }
+
+        .hidden { display: none; }
     </style>
 </head>
 <body>
 
-    <div class="section-title">Выберите дату</div>
-    <div id="calendars" class="calendar-container"></div>
+    <div class="header">
+        <h1>Reserve</h1>
+        <p>Выберите удобную дату</p>
+    </div>
 
-    <div class="booking-footer">
-        <button id="main-button">Забронировать</button>
+    <div id="current-month-container"></div>
+    
+    <button id="toggle-next" class="btn-secondary">Следующий месяц ↓</button>
+    
+    <div id="next-month-container" class="hidden"></div>
+
+    <div class="footer">
+        <button id="book-btn">Забронировать стол</button>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
+        tg.backgroundColor = '#0f0f0f';
+        tg.headerColor = '#0f0f0f';
 
         let selectedDate = null;
-        const webhookUrl = 'ВАШ_URL_WEBHOOK_ЗДЕСЬ'; // Замените на URL от n8n или другого сервиса
+        const webhookUrl = 'ВАШ_WEBHOOK_URL';
 
-        function generateCalendar() {
-            const container = document.getElementById('calendars');
+        function init() {
             const now = new Date();
-
-            for (let i = 0; i < 2; i++) {
-                const monthDate = new Date(now.getFullYear(), now.getMonth() + i, 1);
-                renderMonth(monthDate, container, i === 0);
-            }
+            renderMonth(now, 'current-month-container', true);
+            
+            document.getElementById('toggle-next').onclick = function() {
+                const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+                renderMonth(nextMonth, 'next-month-container', false);
+                this.classList.add('hidden');
+                document.getElementById('next-month-container').classList.remove('hidden');
+            };
         }
 
-        function renderMonth(date, container, isCurrentMonth) {
-            const monthWrapper = document.createElement('div');
-            const monthName = date.toLocaleString('ru-RU', { month: 'long', year: 'numeric' });
-
-            monthWrapper.innerHTML = `
-                <div class="month-name">${monthName}</div>
-                <div class="calendar-grid">
-                    <div class="day-name">Пн</div><div class="day-name">Вт</div><div class="day-name">Ср</div>
-                    <div class="day-name">Чт</div><div class="day-name">Пт</div><div class="day-name">Сб</div><div class="day-name">Вс</div>
-                </div>
-            `;
-
-            const grid = monthWrapper.querySelector('.calendar-grid');
-            const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-            const firstDayIndex = (new Date(date.getFullYear(), date.getMonth(), 1).getDay() + 6) % 7;
+        function renderMonth(date, containerId, isCurrent) {
+            const container = document.getElementById(containerId);
+            const year = date.getFullYear();
+            const month = date.getMonth();
+            const monthName = date.toLocaleString('ru-RU', { month: 'long' });
+            
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const firstDayIndex = (new Date(year, month, 1).getDay() + 6) % 7;
             const today = new Date().getDate();
 
-            // Пустые ячейки для начала месяца
-            for (let x = 0; x < firstDayIndex; x++) {
-                grid.appendChild(document.createElement('div'));
+            let html = `
+                <div class="calendar-card">
+                    <div class="month-header">
+                        <span class="month-name">${monthName} ${year}</span>
+                    </div>
+                    <div class="calendar-grid">
+                        <div class="weekday">Пн</div><div class="weekday">Вт</div><div class="weekday">Ср</div>
+                        <div class="weekday">Чт</div><div class="weekday">Пт</div><div class="weekday">Сб</div><div class="weekday">Вс</div>
+            `;
+
+            for (let i = 0; i < firstDayIndex; i++) {
+                html += `<div class="day empty"></div>`;
             }
 
             for (let d = 1; d <= daysInMonth; d++) {
-                const dayEl = document.createElement('div');
-                dayEl.classList.add('day');
-                dayEl.innerText = d;
+                const fullDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                let classes = ['day'];
+                
+                if (isCurrent && d < today) classes.push('disabled');
+                if (isCurrent && d === today) classes.push('today');
 
-                const fullDate = new Date(date.getFullYear(), date.getMonth(), d).toISOString().split('T')[0];
-
-                if (isCurrentMonth && d < today) {
-                    dayEl.classList.add('disabled');
-                } else {
-                    if (isCurrentMonth && d === today) dayEl.classList.add('today');
-                    dayEl.onclick = () => selectDay(dayEl, fullDate);
-                }
-                grid.appendChild(dayEl);
+                html += `<div class="${classes.join(' ')}" onclick="selectDate(this, '${fullDate}')">${d}</div>`;
             }
-            container.appendChild(monthWrapper);
+
+            html += `</div></div>`;
+            container.innerHTML = html;
         }
 
-        function selectDay(element, date) {
-            document.querySelectorAll('.day').forEach(el => el.classList.remove('selected'));
-            element.classList.add('selected');
+        window.selectDate = function(el, date) {
+            document.querySelectorAll('.day').forEach(d => d.classList.remove('selected'));
+            el.classList.add('selected');
             selectedDate = date;
+            tg.HapticFeedback.selectionChanged();
         }
 
-        document.getElementById('main-button').onclick = async () => {
+        document.getElementById('book-btn').onclick = async () => {
             if (!selectedDate) {
-                tg.showAlert("Пожалуйста, выберите дату!");
+                tg.HapticFeedback.notificationOccurred('error');
+                tg.showPopup({ message: "Выберите дату перед бронированием" });
                 return;
             }
 
-            const data = {
+            const payload = {
                 user: tg.initDataUnsafe?.user,
-                date: selectedDate,
-                timestamp: new Date().getTime()
+                date: selectedDate
             };
 
-            // 1. Отправка через Webhook (внешний сервис)
+            tg.MainButton.showProgress();
+            
             try {
                 await fetch(webhookUrl, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+                    body: JSON.stringify(payload)
                 });
+                tg.HapticFeedback.notificationOccurred('success');
+                tg.close();
             } catch (e) {
-                console.error("Webhook failed", e);
+                tg.sendData(JSON.stringify(payload));
             }
-
-            // 2. Отправка данных обратно боту (закроет Mini App)
-            tg.sendData(JSON.stringify(data));
         };
 
-        generateCalendar();
+        init();
     </script>
 </body>
 </html>

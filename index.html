@@ -2,69 +2,274 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>table_booking</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
+            --bg-color: #000000;
+            --card-bg: #111111;
+            --accent-color: #00ff88;
+            --text-main: #ffffff;
+            --text-hint: #555555;
+            --border-color: #222222;
+            --input-bg: #1a1a1a;
         }
 
         body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
             margin: 0;
+            padding: 0 20px 40px 20px;
+            overflow-x: hidden;
+        }
+
+        .brand { padding: 30px 0 10px 0; text-align: center; }
+        .brand h1 {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 22px;
+            margin: 0;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: var(--accent-color);
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.2);
+        }
+
+        .sub-header { color: var(--text-hint); font-size: 10px; text-align: center; margin-bottom: 25px; letter-spacing: 2px; text-transform: uppercase; }
+
+        /* Секция календаря */
+        .calendar-wrapper { min-height: 320px; }
+        .month-label {
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--text-hint);
+            margin-bottom: 15px;
             display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .calendar-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            animation: fadeIn 0.3s ease;
         }
 
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .weekday { font-size: 10px; color: var(--text-hint); text-align: center; font-weight: bold; margin-bottom: 5px; }
 
         .day {
+            aspect-ratio: 1/1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            font-size: 14px;
             cursor: pointer;
+            transition: 0.2s;
         }
 
+        .day.selected { background: var(--accent-color) !important; color: #000 !important; font-weight: bold; box-shadow: 0 0 15px rgba(0, 255, 136, 0.4); }
+        .day.today { color: var(--accent-color); border: 1px solid rgba(0, 255, 136, 0.3); }
+        .day.disabled { color: #222; pointer-events: none; }
 
+        .nav-btn {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--accent-color);
+            padding: 8px 15px;
             border-radius: 10px;
+            font-size: 12px;
             cursor: pointer;
         }
+
+        /* Детали */
+        #details-section { display: none; margin-top: 30px; animation: slideUp 0.4s ease; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        .detail-group { margin-bottom: 25px; }
+        .label { font-size: 11px; color: var(--text-hint); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; display: block; }
+
+        .time-slots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        .time-btn {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: #fff;
+            padding: 12px 0;
+            border-radius: 12px;
+            font-size: 13px;
+            text-align: center;
+        }
+        .time-btn.active { border-color: var(--accent-color); color: var(--accent-color); background: rgba(0, 255, 136, 0.05); }
+
+        .guests-ctrl { display: flex; align-items: center; gap: 25px; background: var(--card-bg); padding: 12px 20px; border-radius: 15px; width: fit-content; border: 1px solid var(--border-color); }
+        .count-btn { background: var(--accent-color); border: none; width: 28px; height: 28px; border-radius: 8px; font-weight: bold; }
+
+        textarea { width: 100%; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 15px; padding: 15px; color: #fff; box-sizing: border-box; font-family: inherit; font-size: 14px; }
+
+        #main-btn { background: var(--accent-color); color: #000; border: none; width: 100%; padding: 20px; border-radius: 18px; font-size: 16px; font-weight: 800; margin-top: 20px; cursor: pointer; }
     </style>
 </head>
 <body>
 
+    <div class="brand"><h1>table_booking</h1></div>
+    <div class="sub-header">Premium Reservation</div>
 
+    <div class="calendar-wrapper">
+        <div class="month-label">
+            <span id="month-name">Месяц</span>
+            <button id="nav-month" class="nav-btn">Следующий →</button>
+        </div>
+        <div id="calendar-container"></div>
+    </div>
+
+    <div id="details-section">
+        <div class="detail-group">
+            <span class="label">Доступное время</span>
+            <div class="time-slots" id="time-container"></div>
+        </div>
+
+        <div class="detail-group">
+            <span class="label">Количество гостей</span>
+            <div class="guests-ctrl">
+                <button class="count-btn" onclick="changeGuests(-1)">-</button>
+                <span id="guest-count" style="font-weight: bold; font-size: 18px;">2</span>
+                <button class="count-btn" onclick="changeGuests(1)">+</button>
+            </div>
+        </div>
+
+        <div class="detail-group">
+            <span class="label">Комментарий</span>
+            <textarea id="comment" rows="2" placeholder="Ваши пожелания..."></textarea>
+        </div>
+
+        <button id="main-btn">ПОДТВЕРДИТЬ</button>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
+        let currentOffset = 0;
+        let bookingData = { date: null, time: null, guests: 2, comment: "" };
+        const times = ["12:00", "14:00", "16:00", "18:00", "19:00", "20:00", "21:00", "22:00"];
 
+        function renderCalendar(offset) {
+            currentOffset = offset;
             const now = new Date();
+            const targetDate = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+            const container = document.getElementById('calendar-container');
+            
+            // Обновляем заголовок и кнопку
+            document.getElementById('month-name').innerText = targetDate.toLocaleString('ru-RU', { month: 'long', year: 'numeric' });
+            document.getElementById('nav-month').innerText = offset === 0 ? "Следующий →" : "← Назад";
 
+            container.innerHTML = '';
+            const grid = document.createElement('div');
+            grid.className = 'calendar-grid';
+            
+            // Дни недели
+            const weekdays = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'];
+            weekdays.forEach(wd => {
+                const wdEl = document.createElement('div');
+                wdEl.className = 'weekday';
+                wdEl.innerText = wd;
+                grid.appendChild(wdEl);
+            });
 
+            const daysInMonth = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0).getDate();
+            const firstDay = (new Date(targetDate.getFullYear(), targetDate.getMonth(), 1).getDay() + 6) % 7;
 
+            for(let i=0; i<firstDay; i++) grid.appendChild(document.createElement('div'));
 
-
-
-            for (let d = 1; d <= daysInMonth; d++) {
+            for(let d=1; d<=daysInMonth; d++) {
                 const dayEl = document.createElement('div');
+                dayEl.className = 'day';
                 dayEl.innerText = d;
-
+                const fullDate = `${targetDate.getFullYear()}-${String(targetDate.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                
+                if(offset === 0 && d < now.getDate()) {
+                    dayEl.className += ' disabled';
                 } else {
-
-            document.querySelectorAll('.day').forEach(el => el.classList.remove('selected'));
+                    if(offset === 0 && d === now.getDate()) dayEl.classList.add('today');
+                    if(bookingData.date === fullDate) dayEl.classList.add('selected');
+                    
+                    dayEl.onclick = () => {
+                        document.querySelectorAll('.day').forEach(el => el.classList.remove('selected'));
+                        dayEl.classList.add('selected');
+                        bookingData.date = fullDate;
+                        showDetails();
+                        tg.HapticFeedback.impactOccurred('medium');
+                    };
+                }
+                grid.appendChild(dayEl);
+            }
+            container.appendChild(grid);
         }
 
+        function showDetails() {
+            document.getElementById('details-section').style.display = 'block';
+            const timeContainer = document.getElementById('time-container');
+            timeContainer.innerHTML = '';
+            
+            times.forEach(t => {
+                const btn = document.createElement('div');
+                btn.className = 'time-btn' + (bookingData.time === t ? ' active' : '');
+                btn.innerText = t;
+                btn.onclick = () => {
+                    document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    bookingData.time = t;
+                    tg.HapticFeedback.selectionChanged();
+                };
+                timeContainer.appendChild(btn);
+            });
+            
+            setTimeout(() => {
+                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            }, 100);
+        }
+
+        function changeGuests(val) {
+            bookingData.guests = Math.max(1, Math.min(12, bookingData.guests + val));
+            document.getElementById('guest-count').innerText = bookingData.guests;
+            tg.HapticFeedback.impactOccurred('light');
+        }
+
+        document.getElementById('nav-month').onclick = function() {
+            renderCalendar(currentOffset === 0 ? 1 : 0);
+            tg.HapticFeedback.impactOccurred('light');
+        };
+
+        document.getElementById('main-btn').onclick = async () => {
+            bookingData.comment = document.getElementById('comment').value;
+            if(!bookingData.date || !bookingData.time) {
+                tg.showAlert("Пожалуйста, выберите дату и время!");
                 return;
             }
 
-
+            const res = { user: tg.initDataUnsafe?.user, ...bookingData };
+            
             try {
+                await fetch('ВАШ_URL_WEBHOOK', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(res)
                 });
+            } catch(e) {}
 
+            tg.sendData(JSON.stringify(res));
         };
 
+        renderCalendar(0);
     </script>
 </body>
 </html>
